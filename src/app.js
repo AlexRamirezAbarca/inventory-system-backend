@@ -1,21 +1,9 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const productRoutes = require('./routes/products.routes');
+import express from "express";
+import authRoutes from "./modules/authentication/routes/auth.routes.js";
 
 const app = express();
-app.use(cors());
 app.use(express.json());
 
-// Endpoint de prueba
-app.get('/', (req, res) => {
-  res.send('Sistema de Inventario - Backend funcionando!');
-});
+app.use("/api/auth", authRoutes);
 
-app.use('/products', productRoutes);
-
-
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-});
+app.listen(3000, () => console.log("🚀 Server running on port 3000"));

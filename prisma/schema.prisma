@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 🔹 1. ROLES
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(50)
+  description String?
+  status      Int      @default(1) @db.SmallInt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+  createdBy   Int?     @map("created_by")
+  updatedBy   Int?     @map("updated_by")
+
+  users User[]
+
+  @@map("roles")
+}
+
+// 🔹 2. PLANS
+model Plan {
+  id             Int      @id @default(autoincrement())
+  name           String   @db.VarChar(50)
+  description    String?
+  price          Decimal  @db.Decimal(10, 2)
+  durationMonths Int      @map("duration_months")
+  status         Int      @default(1) @db.SmallInt
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @map("updated_at")
+  createdBy      Int?     @map("created_by")
+  updatedBy      Int?     @map("updated_by")
+
+  users User[]
+
+  @@map("plans")
+}
+
+// 🔹 3. USERS
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(150)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  roleId       Int      @map("role_id")
+  planId       Int?     @map("plan_id")
+  status       Int      @default(1) @db.SmallInt
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @map("updated_at")
+  createdBy    Int?     @map("created_by")
+  updatedBy    Int?     @map("updated_by")
+
+  role Role  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  plan Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  categoriesCreated     Category[]      @relation("CategoryCreatedBy")
+  categoriesUpdated     Category[]      @relation("CategoryUpdatedBy")
+  suppliersCreated      Supplier[]      @relation("SupplierCreatedBy")
+  suppliersUpdated      Supplier[]      @relation("SupplierUpdatedBy")
+  productsCreated       Product[]       @relation("ProductCreatedBy")
+  productsUpdated       Product[]       @relation("ProductUpdatedBy")
+  stockMovementsCreated StockMovement[] @relation("StockMovementCreatedBy")
+  stockMovementsUpdated StockMovement[] @relation("StockMovementUpdatedBy")
+
+  @@index([roleId])
+  @@index([planId])
+  @@map("users")
+}
+
+// 🔹 4. CATEGORIES
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  description String?
+  status      Int      @default(1) @db.SmallInt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+  createdBy   Int?     @map("created_by")
+  updatedBy   Int?     @map("updated_by")
+
+  createdByUser User?     @relation("CategoryCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?     @relation("CategoryUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  products      Product[]
+
+  @@map("categories")
+}
+
+// 🔹 5. SUPPLIERS
+model Supplier {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(150)
+  contactName String?  @map("contact_name") @db.VarChar(100)
+  phone       String?  @db.VarChar(30)
+  email       String?  @db.VarChar(150)
+  address     String?
+  status      Int      @default(1) @db.SmallInt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+  createdBy   Int?     @map("created_by")
+  updatedBy   Int?     @map("updated_by")
+
+  createdByUser User?     @relation("SupplierCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?     @relation("SupplierUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  products      Product[]
+
+  @@map("suppliers")
+}
+
+// 🔹 6. PRODUCTS
+model Product {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(150)
+  description   String?
+  categoryId    Int?     @map("category_id")
+  supplierId    Int?     @map("supplier_id")
+  purchasePrice Decimal  @default(0.00) @map("purchase_price") @db.Decimal(10, 2)
+  salePrice     Decimal  @default(0.00) @map("sale_price") @db.Decimal(10, 2)
+  stock         Int      @default(0)
+  status        Int      @default(1) @db.SmallInt
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @map("updated_at")
+  createdBy     Int?     @map("created_by")
+  updatedBy     Int?     @map("updated_by")
+
+  category       Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  supplier       Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  createdByUser  User?           @relation("ProductCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser  User?           @relation("ProductUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  stockMovements StockMovement[]
+
+  @@index([categoryId])
+  @@index([supplierId])
+  @@map("products")
+}
+
+// 🔹 7. STOCK_MOVEMENTS
+model StockMovement {
+  id                Int      @id @default(autoincrement())
+  productId         Int      @map("product_id")
+  type              String   @db.VarChar(20)
+  quantity          Int
+  unitPurchasePrice Decimal? @map("unit_purchase_price") @db.Decimal(10, 2)
+  unitSalePrice     Decimal? @map("unit_sale_price") @db.Decimal(10, 2)
+  totalProfit       Decimal  @default(0.00) @map("total_profit") @db.Decimal(12, 2)
+  movementDate      DateTime @default(now()) @map("movement_date")
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @map("updated_at")
+  createdBy         Int?     @map("created_by")
+  updatedBy         Int?     @map("updated_by")
+
+  product       Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdByUser User?   @relation("StockMovementCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?   @relation("StockMovementUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@map("stock_movements")
+}
