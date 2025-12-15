@@ -62,7 +62,7 @@ export const AuthService = {
   },
 
   async getProfile(userId) {
-    const user = await prisma.users.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         role: true,
@@ -73,3 +73,4 @@ export const AuthService = {
     return user;
   },
 };
+
