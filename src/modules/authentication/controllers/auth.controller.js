@@ -1,30 +1,31 @@
 import { AuthService } from "../services/auth.service.js";
+import { successResponse } from "../../../utils/response.util.js";
 
 export const AuthController = {
-  async register(req, res) {
+  async register(req, res, next) {
     try {
       const user = await AuthService.register(req.body);
-      res.status(201).json({ success: true, user });
+      return successResponse(res, 201, user, "User registered successfully");
     } catch (err) {
-      res.status(400).json({ success: false, message: err.message });
+      next(err);
     }
   },
 
-  async login(req, res) {
+  async login(req, res, next) {
     try {
       const { token, user } = await AuthService.login(req.body);
-      res.json({ success: true, token, user });
+      return successResponse(res, 200, { token, user }, "Login successful");
     } catch (err) {
-      res.status(401).json({ success: false, message: err.message });
+      next(err);
     }
   },
 
-  async me(req, res) {
+  async me(req, res, next) {
     try {
       const user = await AuthService.getProfile(req.user.id);
-      res.json({ success: true, user });
+      return successResponse(res, 200, user, "User profile retrieved successfully");
     } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
+      next(err);
     }
   },
 };

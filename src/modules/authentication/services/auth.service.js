@@ -1,25 +1,23 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../../../../config/prisma.js";
+import { AppError } from "../../../utils/AppError.js";
 
-console.log("🔍 Prisma importado:", prisma); 
+
 const JWT_SECRET = process.env.JWT_SECRET || "SecretKey";
 
 export const AuthService = {
-
- async register({ name, email, password, roleId, planId }) {
-  try {
-    // Verificar si el email ya existe
+  async register({ name, email, password, roleId, planId }) {
+    // Check if email exists
     const existing = await prisma.user.findUnique({ where: { email } });
-
     if (existing) {
-      throw new Error("Email already registered");
+      throw new AppError("Email already registered", 409);
     }
 
-    // Hashear la contraseña
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear el usuario
+    // Create user
     const user = await prisma.user.create({
       data: {
         name,
@@ -31,22 +29,18 @@ export const AuthService = {
     });
 
     return user;
-
-  } catch (error) {
-    console.error("❌ Error en register:", error.message);
-    console.error("Stack trace:", error.stack);
-    
-    // Re-lanzar el error para que el controller lo maneje
-    throw error;
-  }
-},
+  },
 
   async login({ email, password }) {
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) throw new Error("User not found");
+    if (!user) {
+      throw new AppError("Invalid credentials", 401);
+    }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) throw new Error("Invalid password");
+    if (!valid) {
+      throw new AppError("Invalid credentials", 401);
+    }
 
     const token = jwt.sign(
       {
@@ -69,6 +63,10 @@ export const AuthService = {
         plan: true,
       },
     });
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
 
     return user;
   },
